@@ -1,14 +1,10 @@
 from celery import Celery
-
-from app.core.config import get_settings
-
-
-settings = get_settings()
+from app.core.config import settings
 
 celery_app = Celery(
-    "worker",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    "price_worker",
+    broker=settings.celery_broker_url,
+    backend=settings.celery_backend_url,
 )
 
-celery_app.autodiscover_tasks(["app.workers"])
+celery_app.conf.timezone = "UTC"

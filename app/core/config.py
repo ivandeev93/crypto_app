@@ -1,22 +1,21 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-# Класс настроек для приложения
 class Settings(BaseSettings):
-    # URL для подключения к базе данных
-    DATABASE_URL: str
-    REDIS_URL: str = "redis://redis:6379/0"
-    DERIBIT_BASE_URL: str = "https://www.deribit.com/api"
+    database_url: str
+    redis_url: str
+    deribit_base_url: str = "https://www.deribit.com/api/v2/public"
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_file_encoding="utf-8"
+        env_file_encoding="utf-8",
     )
 
 
-# Функция, которая будет возвращать синглтон-экземпляр настроек
-@lru_cache()  # Декоратор кэширует результат первого вызова
+@lru_cache
 def get_settings() -> Settings:
-    print("Загрузка настроек...")
     return Settings()
+
+
+settings = get_settings()

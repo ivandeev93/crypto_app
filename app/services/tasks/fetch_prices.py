@@ -1,7 +1,7 @@
 import asyncio
 import time
 import logging
-from typing import Iterable, List
+from typing import Iterable, Tuple, Optional
 
 from app.core.celery_app import celery_app
 from app.domain.entities.price import PriceRecord
@@ -15,14 +15,15 @@ from app.infrastructure.repositories.price import PriceRepositoryImpl
 logger = logging.getLogger(__name__)
 
 # Список тикеров, берём из Enum
-TICKERS: List[Ticker] = [Ticker.BTC_USD, Ticker.ETH_USD]
+TICKERS: Tuple[Ticker, ...] = (Ticker.btc_usd, Ticker.eth_usd)
 
 
-async def fetch_prices_async(tickers: Iterable[Ticker] = TICKERS) -> None:
+async def fetch_prices_async(tickers: Optional[Iterable[Ticker]] = None) -> None:
     """
     Асинхронно получает текущие цены по тикерам
     и сохраняет их в БД.
     """
+    tickers = tickers or TICKERS
     timestamp = int(time.time())
 
     async with AsyncSessionLocal() as session:
@@ -32,13 +33,13 @@ async def fetch_prices_async(tickers: Iterable[Ticker] = TICKERS) -> None:
         async with DeribitClient() as client:
             for ticker in tickers:
                 try:
-                    price_value = await client.get_index_price(ticker.value)
+                    price_value = await client.get_index_price(ticker)
                 except Exception as exc:
                     logger.error("Ошибка при получении цены для %s: %s", ticker.value, exc)
                     continue
 
                 record = PriceRecord(
-                    ticker=ticker.value,
+                    ticker=ticker,
                     price=price_value,
                     timestamp=timestamp,
                 )
@@ -49,7 +50,11 @@ async def fetch_prices_async(tickers: Iterable[Ticker] = TICKERS) -> None:
                     logger.error("Ошибка при сохранении цены для %s: %s", ticker.value, exc)
 
 
-@celery_app.task(name="fetch_prices")
+@celery_app.task(
+    name="fetch_prices",
+    autoretry_for=(Exception,),
+    retry_kwargs={"max_retries": 3, "countdown": 10},
+)
 def fetch_prices() -> None:
     """
     Точка входа для Celery.

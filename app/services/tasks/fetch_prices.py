@@ -1,43 +1,59 @@
 import asyncio
 import time
-from typing import List
+import logging
+from typing import Iterable, List
 
 from app.core.celery_app import celery_app
-from app.infrastructure.clients.deribit import DeribitClient
 from app.domain.entities.price import PriceRecord
+from app.domain.services.price import PriceService
+from app.domain.entities.ticker import Ticker
+from app.infrastructure.clients.deribit import DeribitClient
 from app.infrastructure.db.session import AsyncSessionLocal
 from app.infrastructure.repositories.price import PriceRepositoryImpl
-from app.domain.services.price import PriceService
 
-TICKERS: List[str] = ["btc_usd", "eth_usd"]
+# Настройка логгера
+logger = logging.getLogger(__name__)
+
+# Список тикеров, берём из Enum
+TICKERS: List[Ticker] = [Ticker.BTC_USD, Ticker.ETH_USD]
 
 
-async def _fetch_prices() -> None:
+async def fetch_prices_async(tickers: Iterable[Ticker] = TICKERS) -> None:
     """
-    Асинхронная функция для получения текущих цен и сохранения их в базу.
+    Асинхронно получает текущие цены по тикерам
+    и сохраняет их в БД.
     """
-    # Создаем сессию БД
+    timestamp = int(time.time())
+
     async with AsyncSessionLocal() as session:
-        repo = PriceRepositoryImpl(session)
-        service = PriceService(repo)
-        client = DeribitClient()
+        repository = PriceRepositoryImpl(session)
+        service = PriceService(repository)
 
-        timestamp = int(time.time())  # фиксируем одно время для всех тикеров
+        async with DeribitClient() as client:
+            for ticker in tickers:
+                try:
+                    price_value = await client.get_index_price(ticker.value)
+                except Exception as exc:
+                    logger.error("Ошибка при получении цены для %s: %s", ticker.value, exc)
+                    continue
 
-        for ticker in TICKERS:
-            price_value = await client.get_index_price(ticker)
-            record = PriceRecord(
-                ticker=ticker,
-                price=price_value,
-                timestamp=timestamp,
-            )
-            await service.save_price(record)
+                record = PriceRecord(
+                    ticker=ticker.value,
+                    price=price_value,
+                    timestamp=timestamp,
+                )
+                try:
+                    await service.save_price(record)
+                    logger.info("Сохранили цену %s: %s", ticker.value, price_value)
+                except Exception as exc:
+                    logger.error("Ошибка при сохранении цены для %s: %s", ticker.value, exc)
 
 
-@celery_app.task
+@celery_app.task(name="fetch_prices")
 def fetch_prices() -> None:
     """
-    Синхронная обёртка для Celery.
-    Celery не поддерживает async, поэтому используем asyncio.run.
+    Точка входа для Celery.
+    Celery не поддерживает async-задачи напрямую,
+    поэтому используем asyncio.run.
     """
-    asyncio.run(_fetch_prices())
+    asyncio.run(fetch_prices_async())

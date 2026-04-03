@@ -9,9 +9,7 @@ celery_app = Celery(
 
 celery_app.conf.timezone = "UTC"
 
-celery_app.autodiscover_tasks(
-    ["app.services.tasks"]
-)
+
 
 # Периодическая задача
 celery_app.conf.beat_schedule = {

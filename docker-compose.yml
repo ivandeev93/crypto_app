@@ -1,35 +1,50 @@
+version: "3.9"
+
 services:
-  api:
-    build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-
-  celery:
-    build: .
-    command: celery -A app.core.celery_app.celery_app worker -B -l info
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-
   db:
-    image: postgres:16
+    image: postgres:15
+    container_name: crypto_app-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: prices
+      POSTGRES_USER: crypto_user
+      POSTGRES_PASSWORD: 123456789
+      POSTGRES_DB: crypto_db
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - crypto_network
 
   redis:
     image: redis:7
+    container_name: crypto_app-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - crypto_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crypto_app-api
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env.docker
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./app:/app
+      - ./alembic:/app/alembic
+    networks:
+      - crypto_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
 
 volumes:
-  postgres_data:
+  db_data:
+
+networks:
+  crypto_network:
+    driver: bridge

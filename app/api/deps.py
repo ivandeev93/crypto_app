@@ -9,5 +9,9 @@ from app.domain.services.price import PriceService
 def get_price_service(
     session: AsyncSession = Depends(get_session),
 ) -> PriceService:
-    repo = PriceRepositoryImpl(session)
+    """
+    Возвращает сервис работы с ценами.
+    Использует репозиторий PriceRepositoryImpl.
+    """
+    repo: PriceRepositoryImpl = PriceRepositoryImpl(session)
     return PriceService(repo)

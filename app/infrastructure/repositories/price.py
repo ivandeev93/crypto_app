@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.domain.entities.price import PriceRecord
 from app.domain.repositories.price import PriceRepository
@@ -18,7 +19,10 @@ class PriceRepositoryImpl(PriceRepository):
             timestamp=record.timestamp,
         )
         self._session.add(model)
-        await self._session.commit()
+        try:
+            await self._session.commit()
+        except IntegrityError:
+            await self._session.rollback()
 
     async def get_all(self, ticker: str) -> List[PriceRecord]:
         stmt = select(PriceModel).where(

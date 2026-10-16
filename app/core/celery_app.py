@@ -5,6 +5,7 @@ celery_app = Celery(
     "price_worker",
     broker=settings.redis_url,
     backend=settings.redis_url,
+    include=["app.services.tasks.fetch_prices"],
 )
 
 celery_app.conf.timezone = "UTC"

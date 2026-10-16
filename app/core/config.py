@@ -5,11 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     redis_url: str
-    deribit_base_url: str = "https://www.deribit.com/api/v2/public"
+    deribit_base_url: str = "https://test.deribit.com/api/v2/public"
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from app.core.config import settings
 from app.infrastructure.db.base import Base
+from app.infrastructure.db.models.price import PriceModel
 
 
 # Загружаем переменные окружения для Docker

@@ -1,7 +1,28 @@
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 .venv/
+venv/
+
+# IDE
 .idea/
 .vscode/
-.env.docker
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,13 +1,9 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:15
     container_name: crypto_app-db
-    environment:
-      POSTGRES_USER: crypto_user
-      POSTGRES_PASSWORD: 123456789
-      POSTGRES_DB: crypto_db
+    env_file:
+      - .env.docker
     ports:
       - "5432:5432"
     volumes:
@@ -36,8 +32,8 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./app:/app
-      - ./alembic:/app/alembic
+      - ./app:/app/app
+      - ./app/alembic:/app/app/alembic
     networks:
       - crypto_network
     working_dir: /app
@@ -54,11 +50,11 @@ services:
     env_file:
       - .env.docker
     volumes:
-      - ./app:/app
-      - ./alembic:/app/alembic
+      - ./app:/app/app
+      - ./app/alembic:/app/app/alembic
     networks:
       - crypto_network
-    command: celery -A app.core.celery_app.celery_app worker --beat --loglevel=info
+    command: celery -A app.core.celery_app.celery_app worker --beat --loglevel=info --concurrency=1
 
 volumes:
   db_data:

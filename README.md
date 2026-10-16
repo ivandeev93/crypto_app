@@ -106,6 +106,11 @@ docker compose up --build -d
 | `db` | PostgreSQL |
 | `redis` | Брокер сообщений Celery |
 
+Применение миграций
+```bash
+docker compose exec api alembic -c app/alembic.ini upgrade head
+```
+
 ### 4. Проверка работы
 
 Откройте документацию Swagger UI:
